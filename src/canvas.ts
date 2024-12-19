@@ -1,4 +1,9 @@
-import { createFractalNoise2D, FractalNoiseParams } from "./noise";
+import {
+  getCrossingsForSquare,
+  getSampleGrid,
+  getSquares,
+} from "./marchingSquares";
+import { Point } from "./noise";
 
 // Helper function to convert hex color to RGB values
 const hexToRgb = (hex: string) => {
@@ -12,47 +17,50 @@ const hexToRgb = (hex: string) => {
     : { r: 0, g: 0, b: 0 };
 };
 
-export const drawNoiseThreshold = ({
-  ctx,
-  width,
-  height,
-  threshold,
-  belowColor,
-  aboveColor,
-  opacity,
-  params,
-}: {
-  ctx: CanvasRenderingContext2D;
-  width: number;
-  height: number;
-  threshold: number;
+export type ThresholdDrawParams = {
   belowColor: string;
   aboveColor: string;
   opacity: number;
-  params: FractalNoiseParams;
+};
+
+export type CanvasInfo = {
+  ctx: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+};
+
+export const drawNoiseThreshold = ({
+  canvasInfo,
+  threshold,
+  thresholdDrawParams,
+  fractalNoise2D,
+}: {
+  canvasInfo: CanvasInfo;
+  threshold: number;
+  fractalNoise2D: (point: Point) => number;
+  thresholdDrawParams: ThresholdDrawParams;
 }) => {
   // Create a temporary canvas for the threshold layer
   const tempCanvas = document.createElement("canvas");
-  tempCanvas.width = width;
-  tempCanvas.height = height;
+  tempCanvas.width = canvasInfo.width;
+  tempCanvas.height = canvasInfo.height;
   const tempCtx = tempCanvas.getContext("2d")!;
 
-  const imageData = tempCtx.createImageData(width, height);
+  const imageData = tempCtx.createImageData(
+    canvasInfo.width,
+    canvasInfo.height
+  );
   const data = imageData.data;
 
-  const below = hexToRgb(belowColor);
-  const above = hexToRgb(aboveColor);
+  const below = hexToRgb(thresholdDrawParams.belowColor);
+  const above = hexToRgb(thresholdDrawParams.aboveColor);
 
-  const fractalNoise2D = createFractalNoise2D({
-    params,
-  });
-
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
+  for (let x = 0; x < canvasInfo.width; x++) {
+    for (let y = 0; y < canvasInfo.height; y++) {
       const value = fractalNoise2D({ x, y });
       const normalized = ((value + 1) / 2) * 100;
 
-      const idx = (y * width + x) * 4;
+      const idx = (y * canvasInfo.width + x) * 4;
 
       if (normalized < threshold) {
         data[idx] = below.r;
@@ -72,37 +80,32 @@ export const drawNoiseThreshold = ({
   tempCtx.putImageData(imageData, 0, 0);
 
   // Now draw the temporary canvas onto the main canvas with globalAlpha
-  ctx.save();
-  ctx.globalAlpha = opacity / 100; // Convert percentage to decimal
-  ctx.drawImage(tempCanvas, 0, 0);
-  ctx.restore();
+  canvasInfo.ctx.save();
+  canvasInfo.ctx.globalAlpha = thresholdDrawParams.opacity / 100; // Convert percentage to decimal
+  canvasInfo.ctx.drawImage(tempCanvas, 0, 0);
+  canvasInfo.ctx.restore();
 };
 
 export const drawNoiseGrayscale = ({
-  ctx,
-  width,
-  height,
-  params,
+  canvasInfo,
+  fractalNoise2D,
 }: {
-  ctx: CanvasRenderingContext2D;
-  width: number;
-  height: number;
-  params: FractalNoiseParams;
+  canvasInfo: CanvasInfo;
+  fractalNoise2D: (point: Point) => number;
 }) => {
-  const imageData = ctx.createImageData(width, height);
+  const imageData = canvasInfo.ctx.createImageData(
+    canvasInfo.width,
+    canvasInfo.height
+  );
   const data = imageData.data;
 
-  const fractalNoise2D = createFractalNoise2D({
-    params,
-  });
-
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
+  for (let x = 0; x < canvasInfo.width; x++) {
+    for (let y = 0; y < canvasInfo.height; y++) {
       const value = fractalNoise2D({ x, y });
       // Normalize from [-1, 1] to [0, 255] for grayscale
       const gray = Math.floor(((value + 1) / 2) * 255);
 
-      const idx = (y * width + x) * 4;
+      const idx = (y * canvasInfo.width + x) * 4;
       // Set R, G, and B to the same value for grayscale
       data[idx] = gray;
       data[idx + 1] = gray;
@@ -111,5 +114,86 @@ export const drawNoiseGrayscale = ({
     }
   }
 
-  ctx.putImageData(imageData, 0, 0);
+  canvasInfo.ctx.putImageData(imageData, 0, 0);
+};
+
+export const drawSamplePoints = ({
+  canvasInfo,
+  gridSize,
+  threshold,
+  fractalNoise2D,
+}: {
+  canvasInfo: CanvasInfo;
+  gridSize: number;
+  threshold: number;
+  fractalNoise2D: (point: Point) => number;
+}) => {
+  const grid = getSampleGrid({
+    width: canvasInfo.width,
+    height: canvasInfo.height,
+    gridSize,
+    threshold,
+    getNoiseValue: (point) => {
+      const value = fractalNoise2D(point);
+      return ((value + 1) / 2) * 100; // Normalize to 0-100 range to match threshold
+    },
+  });
+
+  // Draw points
+  const pointRadius = 4;
+  grid.forEach((row) => {
+    row.forEach((sample) => {
+      canvasInfo.ctx.beginPath();
+      canvasInfo.ctx.arc(
+        sample.point.x,
+        sample.point.y,
+        pointRadius,
+        0,
+        Math.PI * 2
+      );
+      canvasInfo.ctx.fillStyle = sample.inside ? "#ffffff" : "#000000";
+      canvasInfo.ctx.strokeStyle = "#666666";
+      canvasInfo.ctx.fill();
+      canvasInfo.ctx.stroke();
+    });
+  });
+};
+
+export const drawCrossingPoints = ({
+  canvasInfo,
+  gridSize,
+  threshold,
+  fractalNoise2D,
+}: {
+  canvasInfo: CanvasInfo;
+  gridSize: number;
+  threshold: number;
+  fractalNoise2D: (point: Point) => number;
+}) => {
+  const grid = getSampleGrid({
+    width: canvasInfo.width,
+    height: canvasInfo.height,
+    gridSize,
+    threshold,
+    getNoiseValue: (point) => {
+      const value = fractalNoise2D(point);
+      return ((value + 1) / 2) * 100; // Normalize to 0-100 range to match threshold
+    },
+  });
+
+  const squares = getSquares(grid);
+
+  // Flatten squares matrix
+  const flattenedSquares = squares.flat();
+
+  flattenedSquares.forEach((square) => {
+    const crossings = getCrossingsForSquare(square, threshold);
+    crossings.forEach((crossing) => {
+      canvasInfo.ctx.beginPath();
+      canvasInfo.ctx.arc(crossing.point.x, crossing.point.y, 4, 0, Math.PI * 2);
+      // Draw them green
+      canvasInfo.ctx.fillStyle = "#00ff00";
+      canvasInfo.ctx.fill();
+    });
+  });
 };

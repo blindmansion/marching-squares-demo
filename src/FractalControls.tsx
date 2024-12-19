@@ -68,14 +68,14 @@ export function FractalControls({
           />
         </div>
         <div>
-          <label>Base Scale (0.001-0.05):</label>
+          <label>Base Scale (0.001-0.01):</label>
           <Slider
             defaultValue={[baseScale]}
             value={[baseScale]}
             onValueChange={(v) => setBaseScale(v[0])}
             min={0.001}
-            max={0.05}
-            step={0.001}
+            max={0.01}
+            step={0.0001}
           />
         </div>
       </div>

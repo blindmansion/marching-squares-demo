@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Container, Box } from "@radix-ui/themes";
-import { drawNoiseGrayscale, drawNoiseThreshold } from "./canvas";
+import {
+  CanvasInfo,
+  drawCrossingPoints,
+  drawNoiseGrayscale,
+  drawNoiseThreshold,
+  drawSamplePoints,
+} from "./canvas";
 import { FractalControls } from "./FractalControls";
 import { ThresholdControls } from "./ThresholdControls";
+import { createFractalNoise2D } from "./noise";
+import { MarchingSquaresControls } from "./MarchingSquaresControls";
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,6 +24,7 @@ function App() {
   const [belowColor, setBelowColor] = useState("#000000");
   const [aboveColor, setAboveColor] = useState("#808080");
   const [opacity, setOpacity] = useState(70);
+  const [gridSize, setGridSize] = useState(40);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -45,10 +54,13 @@ function App() {
     const ctx = ctxRef.current;
     if (!ctx) return;
 
-    drawNoiseGrayscale({
+    const canvasInfo: CanvasInfo = {
       ctx,
       width: dimensions.width,
       height: dimensions.height,
+    };
+
+    const fractalNoise2D = createFractalNoise2D({
       params: {
         octaves,
         lacunarity,
@@ -56,20 +68,32 @@ function App() {
         baseScale,
       },
     });
+
+    drawNoiseGrayscale({
+      canvasInfo,
+      fractalNoise2D,
+    });
     drawNoiseThreshold({
-      ctx,
-      width: dimensions.width,
-      height: dimensions.height,
+      canvasInfo,
       threshold,
-      belowColor,
-      aboveColor,
-      opacity,
-      params: {
-        octaves,
-        lacunarity,
-        persistence,
-        baseScale,
+      thresholdDrawParams: {
+        belowColor,
+        aboveColor,
+        opacity,
       },
+      fractalNoise2D,
+    });
+    drawSamplePoints({
+      canvasInfo,
+      gridSize,
+      threshold,
+      fractalNoise2D,
+    });
+    drawCrossingPoints({
+      canvasInfo,
+      gridSize,
+      threshold,
+      fractalNoise2D,
     });
   }, [
     dimensions,
@@ -81,6 +105,7 @@ function App() {
     belowColor,
     aboveColor,
     opacity,
+    gridSize,
   ]);
 
   return (
@@ -152,6 +177,11 @@ function App() {
             setPersistence={setPersistence}
             baseScale={baseScale}
             setBaseScale={setBaseScale}
+            style={{ flex: 1 }}
+          />
+          <MarchingSquaresControls
+            gridSize={gridSize}
+            setGridSize={setGridSize}
             style={{ flex: 1 }}
           />
         </div>
