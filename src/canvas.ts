@@ -135,8 +135,13 @@ export const drawSamplePoints = ({
     },
   });
 
+  // Save the current context state
+  canvasInfo.ctx.save();
+
   // Draw points
   const pointRadius = 4;
+  canvasInfo.ctx.lineWidth = 2; // Changed from default to 2
+
   grid.forEach((row) => {
     row.forEach((sample) => {
       canvasInfo.ctx.beginPath();
@@ -153,6 +158,9 @@ export const drawSamplePoints = ({
       canvasInfo.ctx.stroke();
     });
   });
+
+  // Restore the context state
+  canvasInfo.ctx.restore();
 };
 
 export const drawCrossingPoints = ({
