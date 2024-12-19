@@ -187,6 +187,11 @@ export const drawCrossingPoints = ({
   // Flatten squares matrix
   const flattenedSquares = squares.flat();
 
+  // Set fill and stroke styles and width
+  canvasInfo.ctx.fillStyle = "#00ff00";
+  canvasInfo.ctx.strokeStyle = "#00ff00";
+  canvasInfo.ctx.lineWidth = 3;
+
   flattenedSquares.forEach((square) => {
     if (showCrossingPoints) {
       square.lines.forEach((line) => {

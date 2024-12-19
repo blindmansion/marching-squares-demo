@@ -40,9 +40,9 @@ export function MarchingSquaresControls({
             defaultValue={[gridSize]}
             value={[gridSize]}
             onValueChange={(v) => setGridSize(v[0])}
-            min={10}
+            min={5}
             max={100}
-            step={5}
+            step={1}
           />
         </div>
 

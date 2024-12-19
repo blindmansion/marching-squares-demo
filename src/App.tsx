@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Container, Box } from "@radix-ui/themes";
 import {
   CanvasInfo,
@@ -9,7 +9,7 @@ import {
 } from "./canvas";
 import { FractalControls } from "./FractalControls";
 import { ThresholdControls } from "./ThresholdControls";
-import { createFractalNoise2D } from "./noise";
+import { createFractalNoise2D, Point } from "./noise";
 import { MarchingSquaresControls } from "./MarchingSquaresControls";
 
 function App() {
@@ -29,6 +29,8 @@ function App() {
   const [showSamplePoints, setShowSamplePoints] = useState(false);
   const [showCrossingPoints, setShowCrossingPoints] = useState(false);
   const [showLines, setShowLines] = useState(false);
+  const [noiseMatrix, setNoiseMatrix] = useState<number[][]>([]);
+
   useEffect(() => {
     const updateDimensions = () => {
       const margin = 500;
@@ -54,14 +56,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const ctx = ctxRef.current;
-    if (!ctx) return;
-
-    const canvasInfo: CanvasInfo = {
-      ctx,
-      width: dimensions.width,
-      height: dimensions.height,
-    };
+    if (!dimensions.width || !dimensions.height) return;
 
     const fractalNoise2D = createFractalNoise2D({
       params: {
@@ -72,9 +67,41 @@ function App() {
       },
     });
 
+    // Calculate noise values for each pixel
+    const newNoiseMatrix: number[][] = [];
+    for (let y = 0; y < dimensions.height; y++) {
+      const row: number[] = [];
+      for (let x = 0; x < dimensions.width; x++) {
+        row.push(fractalNoise2D({ x, y }));
+      }
+      newNoiseMatrix.push(row);
+    }
+    setNoiseMatrix(newNoiseMatrix);
+  }, [dimensions, octaves, lacunarity, persistence, baseScale]);
+
+  // Move getCachedNoise into useCallback
+  const getCachedNoise = useCallback(
+    (point: Point) => {
+      const xi = Math.floor(point.x);
+      const yi = Math.floor(point.y);
+      return noiseMatrix[yi]?.[xi] ?? 0;
+    },
+    [noiseMatrix]
+  );
+
+  useEffect(() => {
+    const ctx = ctxRef.current;
+    if (!ctx || noiseMatrix.length === 0) return;
+
+    const canvasInfo: CanvasInfo = {
+      ctx,
+      width: dimensions.width,
+      height: dimensions.height,
+    };
+
     drawNoiseGrayscale({
       canvasInfo,
-      fractalNoise2D,
+      fractalNoise2D: getCachedNoise,
     });
     if (showThreshold) {
       drawNoiseThreshold({
@@ -85,7 +112,7 @@ function App() {
           aboveColor,
           opacity,
         },
-        fractalNoise2D,
+        fractalNoise2D: getCachedNoise,
       });
     }
     if (showSamplePoints) {
@@ -93,24 +120,21 @@ function App() {
         canvasInfo,
         gridSize,
         threshold,
-        fractalNoise2D,
+        fractalNoise2D: getCachedNoise,
       });
     }
     drawCrossingPoints({
       canvasInfo,
       gridSize,
       threshold,
-      fractalNoise2D,
+      fractalNoise2D: getCachedNoise,
       showCrossingPoints,
       showLines,
     });
   }, [
+    noiseMatrix,
     dimensions,
     threshold,
-    octaves,
-    lacunarity,
-    persistence,
-    baseScale,
     belowColor,
     aboveColor,
     opacity,
@@ -119,6 +143,7 @@ function App() {
     showSamplePoints,
     showCrossingPoints,
     showLines,
+    getCachedNoise,
   ]);
 
   return (
