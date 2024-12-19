@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Container, Slider, Box } from "@radix-ui/themes";
+import { Container, Box } from "@radix-ui/themes";
 import { drawNoiseThreshold } from "./canvas";
+import { FractalControls } from "./FractalControls";
+import { ThresholdControls } from "./ThresholdControls";
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,6 +13,8 @@ function App() {
   const [lacunarity, setLacunarity] = useState(2);
   const [persistence, setPersistence] = useState(0.5);
   const [baseScale, setBaseScale] = useState(0.01);
+  const [belowColor, setBelowColor] = useState("#000000");
+  const [aboveColor, setAboveColor] = useState("#808080");
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -45,6 +49,8 @@ function App() {
       width: dimensions.width,
       height: dimensions.height,
       threshold,
+      belowColor,
+      aboveColor,
       params: {
         octaves,
         lacunarity,
@@ -52,7 +58,16 @@ function App() {
         baseScale,
       },
     });
-  }, [dimensions, threshold, octaves, lacunarity, persistence, baseScale]);
+  }, [
+    dimensions,
+    threshold,
+    octaves,
+    lacunarity,
+    persistence,
+    baseScale,
+    belowColor,
+    aboveColor,
+  ]);
 
   return (
     <Container
@@ -66,7 +81,7 @@ function App() {
         style={{
           padding: "24px",
           borderRadius: "12px",
-          backgroundColor: "var(--gray-1)",
+          backgroundColor: "var(--gray-3)",
         }}
         className="rt-BoxShadow"
       >
@@ -96,61 +111,33 @@ function App() {
             }}
           />
         </Box>
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div>
-            <label>Threshold:</label>
-            <Slider
-              defaultValue={[threshold]}
-              value={[threshold]}
-              onValueChange={(v) => setThreshold(v[0])}
-              min={0}
-              max={100}
-            />
-          </div>
-          <div>
-            <label>Octaves (1-8):</label>
-            <Slider
-              defaultValue={[octaves]}
-              value={[octaves]}
-              onValueChange={(v) => setOctaves(v[0])}
-              min={1}
-              max={8}
-              step={1}
-            />
-          </div>
-          <div>
-            <label>Lacunarity (1-4):</label>
-            <Slider
-              defaultValue={[lacunarity]}
-              value={[lacunarity]}
-              onValueChange={(v) => setLacunarity(v[0])}
-              min={1}
-              max={4}
-              step={0.1}
-            />
-          </div>
-          <div>
-            <label>Persistence (0-1):</label>
-            <Slider
-              defaultValue={[persistence]}
-              value={[persistence]}
-              onValueChange={(v) => setPersistence(v[0])}
-              min={0}
-              max={1}
-              step={0.05}
-            />
-          </div>
-          <div>
-            <label>Base Scale (0.001-0.05):</label>
-            <Slider
-              defaultValue={[baseScale]}
-              value={[baseScale]}
-              onValueChange={(v) => setBaseScale(v[0])}
-              min={0.001}
-              max={0.05}
-              step={0.001}
-            />
-          </div>
+        <div
+          style={{
+            display: "flex",
+            gap: "24px",
+            width: "100%",
+          }}
+        >
+          <ThresholdControls
+            threshold={threshold}
+            setThreshold={setThreshold}
+            belowColor={belowColor}
+            setBelowColor={setBelowColor}
+            aboveColor={aboveColor}
+            setAboveColor={setAboveColor}
+            style={{ flex: 1 }}
+          />
+          <FractalControls
+            octaves={octaves}
+            setOctaves={setOctaves}
+            lacunarity={lacunarity}
+            setLacunarity={setLacunarity}
+            persistence={persistence}
+            setPersistence={setPersistence}
+            baseScale={baseScale}
+            setBaseScale={setBaseScale}
+            style={{ flex: 1 }}
+          />
         </div>
       </Box>
     </Container>
