@@ -1,8 +1,4 @@
-import {
-  getCrossingsForSquare,
-  getSampleGrid,
-  getSquares,
-} from "./marchingSquares";
+import { evaluateSquares, getSampleGrid, getSquares } from "./marchingSquares";
 import { Point } from "./noise";
 
 // Helper function to convert hex color to RGB values
@@ -163,11 +159,15 @@ export const drawCrossingPoints = ({
   canvasInfo,
   gridSize,
   threshold,
+  showCrossingPoints,
+  showLines,
   fractalNoise2D,
 }: {
   canvasInfo: CanvasInfo;
   gridSize: number;
   threshold: number;
+  showCrossingPoints: boolean;
+  showLines: boolean;
   fractalNoise2D: (point: Point) => number;
 }) => {
   const grid = getSampleGrid({
@@ -182,18 +182,41 @@ export const drawCrossingPoints = ({
   });
 
   const squares = getSquares(grid);
+  evaluateSquares(squares, threshold);
 
   // Flatten squares matrix
   const flattenedSquares = squares.flat();
 
   flattenedSquares.forEach((square) => {
-    const crossings = getCrossingsForSquare(square, threshold);
-    crossings.forEach((crossing) => {
-      canvasInfo.ctx.beginPath();
-      canvasInfo.ctx.arc(crossing.point.x, crossing.point.y, 4, 0, Math.PI * 2);
-      // Draw them green
-      canvasInfo.ctx.fillStyle = "#00ff00";
-      canvasInfo.ctx.fill();
-    });
+    if (showCrossingPoints) {
+      square.lines.forEach((line) => {
+        canvasInfo.ctx.beginPath();
+        canvasInfo.ctx.arc(
+          line.crossings[0].point.x,
+          line.crossings[0].point.y,
+          4,
+          0,
+          Math.PI * 2
+        );
+        // Draw them green
+        canvasInfo.ctx.fillStyle = "#00ff00";
+        canvasInfo.ctx.fill();
+      });
+    }
+    if (showLines) {
+      square.lines.forEach((line) => {
+        canvasInfo.ctx.beginPath();
+        canvasInfo.ctx.moveTo(
+          line.crossings[0].point.x,
+          line.crossings[0].point.y
+        );
+        canvasInfo.ctx.lineTo(
+          line.crossings[1].point.x,
+          line.crossings[1].point.y
+        );
+        canvasInfo.ctx.strokeStyle = "#00ff00";
+        canvasInfo.ctx.stroke();
+      });
+    }
   });
 };

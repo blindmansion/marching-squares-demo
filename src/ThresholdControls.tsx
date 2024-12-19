@@ -1,4 +1,4 @@
-import { Box, Slider } from "@radix-ui/themes";
+import { Box, Slider, Switch } from "@radix-ui/themes";
 
 interface ThresholdControlsProps {
   threshold: number;
@@ -9,6 +9,8 @@ interface ThresholdControlsProps {
   setAboveColor: (value: string) => void;
   opacity: number;
   setOpacity: (value: number) => void;
+  showThreshold: boolean;
+  setShowThreshold: (value: boolean) => void;
   style?: React.CSSProperties;
 }
 
@@ -21,6 +23,8 @@ export function ThresholdControls({
   setAboveColor,
   opacity,
   setOpacity,
+  showThreshold,
+  setShowThreshold,
   style,
 }: ThresholdControlsProps) {
   return (
@@ -44,39 +48,57 @@ export function ThresholdControls({
             max={100}
           />
         </div>
-        <div>
-          <label>Opacity:</label>
-          <Slider
-            defaultValue={[opacity]}
-            value={[opacity]}
-            onValueChange={(v) => setOpacity(v[0])}
-            min={0}
-            max={100}
-            step={1}
-          />
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <label>Show Threshold:</label>
+          <Switch checked={showThreshold} onCheckedChange={setShowThreshold} />
         </div>
-        <div>
-          <label>Below Threshold Color:</label>
-          <div style={{ marginTop: "8px" }}>
-            <input
-              type="color"
-              value={belowColor}
-              onChange={(e) => setBelowColor(e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-        </div>
-        <div>
-          <label>Above Threshold Color:</label>
-          <div style={{ marginTop: "8px" }}>
-            <input
-              type="color"
-              value={aboveColor}
-              onChange={(e) => setAboveColor(e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-        </div>
+
+        {showThreshold && (
+          <>
+            <div>
+              <label>Opacity:</label>
+              <Slider
+                defaultValue={[opacity]}
+                value={[opacity]}
+                onValueChange={(v) => setOpacity(v[0])}
+                min={0}
+                max={100}
+                step={1}
+              />
+            </div>
+
+            <div>
+              <label>Below Threshold Color:</label>
+              <div style={{ marginTop: "8px" }}>
+                <input
+                  type="color"
+                  value={belowColor}
+                  onChange={(e) => setBelowColor(e.target.value)}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label>Above Threshold Color:</label>
+              <div style={{ marginTop: "8px" }}>
+                <input
+                  type="color"
+                  value={aboveColor}
+                  onChange={(e) => setAboveColor(e.target.value)}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </Box>
   );

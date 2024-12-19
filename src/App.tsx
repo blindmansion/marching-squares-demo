@@ -20,12 +20,15 @@ function App() {
   const [octaves, setOctaves] = useState(4);
   const [lacunarity, setLacunarity] = useState(2);
   const [persistence, setPersistence] = useState(0.5);
-  const [baseScale, setBaseScale] = useState(0.01);
+  const [baseScale, setBaseScale] = useState(0.005);
   const [belowColor, setBelowColor] = useState("#000000");
   const [aboveColor, setAboveColor] = useState("#808080");
   const [opacity, setOpacity] = useState(70);
   const [gridSize, setGridSize] = useState(40);
-
+  const [showThreshold, setShowThreshold] = useState(false);
+  const [showSamplePoints, setShowSamplePoints] = useState(false);
+  const [showCrossingPoints, setShowCrossingPoints] = useState(false);
+  const [showLines, setShowLines] = useState(false);
   useEffect(() => {
     const updateDimensions = () => {
       const margin = 500;
@@ -73,27 +76,33 @@ function App() {
       canvasInfo,
       fractalNoise2D,
     });
-    drawNoiseThreshold({
-      canvasInfo,
-      threshold,
-      thresholdDrawParams: {
-        belowColor,
-        aboveColor,
-        opacity,
-      },
-      fractalNoise2D,
-    });
-    drawSamplePoints({
-      canvasInfo,
-      gridSize,
-      threshold,
-      fractalNoise2D,
-    });
+    if (showThreshold) {
+      drawNoiseThreshold({
+        canvasInfo,
+        threshold,
+        thresholdDrawParams: {
+          belowColor,
+          aboveColor,
+          opacity,
+        },
+        fractalNoise2D,
+      });
+    }
+    if (showSamplePoints) {
+      drawSamplePoints({
+        canvasInfo,
+        gridSize,
+        threshold,
+        fractalNoise2D,
+      });
+    }
     drawCrossingPoints({
       canvasInfo,
       gridSize,
       threshold,
       fractalNoise2D,
+      showCrossingPoints,
+      showLines,
     });
   }, [
     dimensions,
@@ -106,6 +115,10 @@ function App() {
     aboveColor,
     opacity,
     gridSize,
+    showThreshold,
+    showSamplePoints,
+    showCrossingPoints,
+    showLines,
   ]);
 
   return (
@@ -166,6 +179,8 @@ function App() {
             setAboveColor={setAboveColor}
             opacity={opacity}
             setOpacity={setOpacity}
+            showThreshold={showThreshold}
+            setShowThreshold={setShowThreshold}
             style={{ flex: 1 }}
           />
           <FractalControls
@@ -182,6 +197,12 @@ function App() {
           <MarchingSquaresControls
             gridSize={gridSize}
             setGridSize={setGridSize}
+            showSamplePoints={showSamplePoints}
+            setShowSamplePoints={setShowSamplePoints}
+            showCrossingPoints={showCrossingPoints}
+            setShowCrossingPoints={setShowCrossingPoints}
+            showLines={showLines}
+            setShowLines={setShowLines}
             style={{ flex: 1 }}
           />
         </div>

@@ -143,6 +143,23 @@ export const getSquares = (sampleGrid: SamplePoint[][]): Square[][] => {
   return squares;
 };
 
+export const getLinesFromCrossings = (crossings: Crossing[]): Line[] => {
+  // If there are exactly 2 crossings, draw a line between them
+  if (crossings.length === 2) {
+    return [{ crossings: crossings }];
+  }
+
+  // If there are 4 crossings, draw a line between the top left and bottom right, and the top right and bottom left
+  if (crossings.length === 4) {
+    return [
+      { crossings: [crossings[0], crossings[3]] },
+      { crossings: [crossings[1], crossings[2]] },
+    ];
+  }
+
+  return [];
+};
+
 export const getCrossingsForSquare = (
   square: Square,
   threshold: number
@@ -153,6 +170,7 @@ export const getCrossingsForSquare = (
 
   // Top edge (left to right)
   const topCrossing = getCrossingFromSamples(
+    square,
     topLeft,
     topRight,
     square.neighbors.top,
@@ -162,6 +180,7 @@ export const getCrossingsForSquare = (
 
   // Right edge (top to bottom)
   const rightCrossing = getCrossingFromSamples(
+    square,
     topRight,
     bottomRight,
     square.neighbors.right,
@@ -171,6 +190,7 @@ export const getCrossingsForSquare = (
 
   // Bottom edge (right to left)
   const bottomCrossing = getCrossingFromSamples(
+    square,
     bottomRight,
     bottomLeft,
     square.neighbors.bottom,
@@ -180,6 +200,7 @@ export const getCrossingsForSquare = (
 
   // Left edge (bottom to top)
   const leftCrossing = getCrossingFromSamples(
+    square,
     bottomLeft,
     topLeft,
     square.neighbors.left,
@@ -191,6 +212,7 @@ export const getCrossingsForSquare = (
 };
 
 const getCrossingFromSamples = (
+  square: Square,
   sample1: SamplePoint,
   sample2: SamplePoint,
   neighbor: Square | null,
@@ -201,30 +223,29 @@ const getCrossingFromSamples = (
     return null;
   }
 
-  // Ensure we're interpolating from outside to inside
+  // Check if neighbor exists and has already calculated this crossing
+  if (neighbor?.lines) {
+    for (const line of neighbor.lines) {
+      for (const crossing of line.crossings) {
+        // If this crossing points back to our square, use its point
+        if (crossing.neighbor?.samples === square.samples) {
+          return {
+            point: { ...crossing.point },
+            neighbor,
+          };
+        }
+      }
+    }
+  }
+
+  // If no existing crossing found, calculate as before...
   const [outsideSample, insideSample] = sample1.inside
     ? [sample2, sample1]
     : [sample1, sample2];
 
-  // Protect against division by zero
-  if (insideSample.value === outsideSample.value) {
-    // If values are equal but inside states differ (shouldn't happen with proper threshold),
-    // return midpoint as fallback
-    return {
-      point: {
-        x: (insideSample.point.x + outsideSample.point.x) / 2,
-        y: (insideSample.point.y + outsideSample.point.y) / 2,
-      },
-      neighbor,
-    };
-  }
-
-  // Calculate interpolation factor
   let t =
     (threshold - outsideSample.value) /
     (insideSample.value - outsideSample.value);
-
-  // Clamp t to [0,1] for safety
   t = Math.max(0, Math.min(1, t));
 
   const crossingPoint = {
@@ -240,4 +261,20 @@ const getCrossingFromSamples = (
     point: crossingPoint,
     neighbor,
   };
+};
+
+export const evaluateSquare = (square: Square, threshold: number): void => {
+  const crossings = getCrossingsForSquare(square, threshold);
+  square.lines = getLinesFromCrossings(crossings);
+};
+
+export const evaluateSquares = (
+  squares: Square[][],
+  threshold: number
+): void => {
+  for (const squareRow of squares) {
+    for (const square of squareRow) {
+      evaluateSquare(square, threshold);
+    }
+  }
 };

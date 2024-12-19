@@ -1,14 +1,26 @@
-import { Box, Slider } from "@radix-ui/themes";
+import { Box, Slider, Switch } from "@radix-ui/themes";
 
 interface MarchingSquaresControlsProps {
   gridSize: number;
   setGridSize: (value: number) => void;
+  showSamplePoints: boolean;
+  setShowSamplePoints: (value: boolean) => void;
+  showCrossingPoints: boolean;
+  setShowCrossingPoints: (value: boolean) => void;
+  showLines: boolean;
+  setShowLines: (value: boolean) => void;
   style?: React.CSSProperties;
 }
 
 export function MarchingSquaresControls({
   gridSize,
   setGridSize,
+  showSamplePoints,
+  setShowSamplePoints,
+  showCrossingPoints,
+  setShowCrossingPoints,
+  showLines,
+  setShowLines,
   style,
 }: MarchingSquaresControlsProps) {
   return (
@@ -23,7 +35,7 @@ export function MarchingSquaresControls({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
         <div>
-          <label>Grid Size:</label>
+          <label>Sample Grid Size:</label>
           <Slider
             defaultValue={[gridSize]}
             value={[gridSize]}
@@ -32,6 +44,45 @@ export function MarchingSquaresControls({
             max={100}
             step={5}
           />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <label>Show Sample Grid:</label>
+          <Switch
+            checked={showSamplePoints}
+            onCheckedChange={setShowSamplePoints}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <label>Show Crossing Points:</label>
+          <Switch
+            checked={showCrossingPoints}
+            onCheckedChange={setShowCrossingPoints}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <label>Show Lines:</label>
+          <Switch checked={showLines} onCheckedChange={setShowLines} />
         </div>
       </div>
     </Box>
