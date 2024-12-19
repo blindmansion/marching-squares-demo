@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Container, Box } from "@radix-ui/themes";
-import { drawNoiseThreshold } from "./canvas";
+import { drawNoiseGrayscale, drawNoiseThreshold } from "./canvas";
 import { FractalControls } from "./FractalControls";
 import { ThresholdControls } from "./ThresholdControls";
 
@@ -15,6 +15,7 @@ function App() {
   const [baseScale, setBaseScale] = useState(0.01);
   const [belowColor, setBelowColor] = useState("#000000");
   const [aboveColor, setAboveColor] = useState("#808080");
+  const [opacity, setOpacity] = useState(70);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -44,6 +45,17 @@ function App() {
     const ctx = ctxRef.current;
     if (!ctx) return;
 
+    drawNoiseGrayscale({
+      ctx,
+      width: dimensions.width,
+      height: dimensions.height,
+      params: {
+        octaves,
+        lacunarity,
+        persistence,
+        baseScale,
+      },
+    });
     drawNoiseThreshold({
       ctx,
       width: dimensions.width,
@@ -51,6 +63,7 @@ function App() {
       threshold,
       belowColor,
       aboveColor,
+      opacity,
       params: {
         octaves,
         lacunarity,
@@ -67,6 +80,7 @@ function App() {
     baseScale,
     belowColor,
     aboveColor,
+    opacity,
   ]);
 
   return (
@@ -125,6 +139,8 @@ function App() {
             setBelowColor={setBelowColor}
             aboveColor={aboveColor}
             setAboveColor={setAboveColor}
+            opacity={opacity}
+            setOpacity={setOpacity}
             style={{ flex: 1 }}
           />
           <FractalControls

@@ -19,6 +19,7 @@ export const drawNoiseThreshold = ({
   threshold,
   belowColor,
   aboveColor,
+  opacity,
   params,
 }: {
   ctx: CanvasRenderingContext2D;
@@ -27,9 +28,16 @@ export const drawNoiseThreshold = ({
   threshold: number;
   belowColor: string;
   aboveColor: string;
+  opacity: number;
   params: FractalNoiseParams;
 }) => {
-  const imageData = ctx.createImageData(width, height);
+  // Create a temporary canvas for the threshold layer
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext("2d")!;
+
+  const imageData = tempCtx.createImageData(width, height);
   const data = imageData.data;
 
   const below = hexToRgb(belowColor);
@@ -57,6 +65,49 @@ export const drawNoiseThreshold = ({
         data[idx + 2] = above.b;
         data[idx + 3] = 255;
       }
+    }
+  }
+
+  // Draw to temporary canvas first
+  tempCtx.putImageData(imageData, 0, 0);
+
+  // Now draw the temporary canvas onto the main canvas with globalAlpha
+  ctx.save();
+  ctx.globalAlpha = opacity / 100; // Convert percentage to decimal
+  ctx.drawImage(tempCanvas, 0, 0);
+  ctx.restore();
+};
+
+export const drawNoiseGrayscale = ({
+  ctx,
+  width,
+  height,
+  params,
+}: {
+  ctx: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  params: FractalNoiseParams;
+}) => {
+  const imageData = ctx.createImageData(width, height);
+  const data = imageData.data;
+
+  const fractalNoise2D = createFractalNoise2D({
+    params,
+  });
+
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const value = fractalNoise2D({ x, y });
+      // Normalize from [-1, 1] to [0, 255] for grayscale
+      const gray = Math.floor(((value + 1) / 2) * 255);
+
+      const idx = (y * width + x) * 4;
+      // Set R, G, and B to the same value for grayscale
+      data[idx] = gray;
+      data[idx + 1] = gray;
+      data[idx + 2] = gray;
+      data[idx + 3] = 255; // Full opacity
     }
   }
 

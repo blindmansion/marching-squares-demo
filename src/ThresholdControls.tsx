@@ -7,6 +7,8 @@ interface ThresholdControlsProps {
   setBelowColor: (value: string) => void;
   aboveColor: string;
   setAboveColor: (value: string) => void;
+  opacity: number;
+  setOpacity: (value: number) => void;
   style?: React.CSSProperties;
 }
 
@@ -17,6 +19,8 @@ export function ThresholdControls({
   setBelowColor,
   aboveColor,
   setAboveColor,
+  opacity,
+  setOpacity,
   style,
 }: ThresholdControlsProps) {
   return (
@@ -38,6 +42,17 @@ export function ThresholdControls({
             onValueChange={(v) => setThreshold(v[0])}
             min={0}
             max={100}
+          />
+        </div>
+        <div>
+          <label>Opacity:</label>
+          <Slider
+            defaultValue={[opacity]}
+            value={[opacity]}
+            onValueChange={(v) => setOpacity(v[0])}
+            min={0}
+            max={100}
+            step={1}
           />
         </div>
         <div>
