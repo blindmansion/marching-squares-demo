@@ -30,6 +30,7 @@ function App() {
   const [showCrossingPoints, setShowCrossingPoints] = useState(false);
   const [showLines, setShowLines] = useState(false);
   const [noiseMatrix, setNoiseMatrix] = useState<number[][]>([]);
+  const [lineColor, setLineColor] = useState("#00FF00");
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -130,6 +131,7 @@ function App() {
       fractalNoise2D: getCachedNoise,
       showCrossingPoints,
       showLines,
+      lineColor,
     });
   }, [
     noiseMatrix,
@@ -144,6 +146,7 @@ function App() {
     showCrossingPoints,
     showLines,
     getCachedNoise,
+    lineColor,
   ]);
 
   return (
@@ -195,6 +198,17 @@ function App() {
             width: "100%",
           }}
         >
+          <FractalControls
+            octaves={octaves}
+            setOctaves={setOctaves}
+            lacunarity={lacunarity}
+            setLacunarity={setLacunarity}
+            persistence={persistence}
+            setPersistence={setPersistence}
+            baseScale={baseScale}
+            setBaseScale={setBaseScale}
+            style={{ flex: 1 }}
+          />
           <ThresholdControls
             threshold={threshold}
             setThreshold={setThreshold}
@@ -208,17 +222,7 @@ function App() {
             setShowThreshold={setShowThreshold}
             style={{ flex: 1 }}
           />
-          <FractalControls
-            octaves={octaves}
-            setOctaves={setOctaves}
-            lacunarity={lacunarity}
-            setLacunarity={setLacunarity}
-            persistence={persistence}
-            setPersistence={setPersistence}
-            baseScale={baseScale}
-            setBaseScale={setBaseScale}
-            style={{ flex: 1 }}
-          />
+
           <MarchingSquaresControls
             gridSize={gridSize}
             setGridSize={setGridSize}
@@ -228,6 +232,8 @@ function App() {
             setShowCrossingPoints={setShowCrossingPoints}
             showLines={showLines}
             setShowLines={setShowLines}
+            lineColor={lineColor}
+            setLineColor={setLineColor}
             style={{ flex: 1 }}
           />
         </div>

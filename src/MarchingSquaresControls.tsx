@@ -9,6 +9,8 @@ interface MarchingSquaresControlsProps {
   setShowCrossingPoints: (value: boolean) => void;
   showLines: boolean;
   setShowLines: (value: boolean) => void;
+  lineColor: string;
+  setLineColor: (value: string) => void;
   style?: React.CSSProperties;
 }
 
@@ -21,6 +23,8 @@ export function MarchingSquaresControls({
   setShowCrossingPoints,
   showLines,
   setShowLines,
+  lineColor,
+  setLineColor,
   style,
 }: MarchingSquaresControlsProps) {
   return (
@@ -84,6 +88,20 @@ export function MarchingSquaresControls({
           <label>Show Lines:</label>
           <Switch checked={showLines} onCheckedChange={setShowLines} />
         </div>
+
+        {showLines && (
+          <div>
+            <label>Line Color:</label>
+            <div style={{ marginTop: "8px" }}>
+              <input
+                type="color"
+                value={lineColor}
+                onChange={(e) => setLineColor(e.target.value)}
+                style={{ width: "100%" }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </Box>
   );

@@ -162,6 +162,7 @@ export const drawCrossingPoints = ({
   showCrossingPoints,
   showLines,
   fractalNoise2D,
+  lineColor,
 }: {
   canvasInfo: CanvasInfo;
   gridSize: number;
@@ -169,6 +170,7 @@ export const drawCrossingPoints = ({
   showCrossingPoints: boolean;
   showLines: boolean;
   fractalNoise2D: (point: Point) => number;
+  lineColor: string;
 }) => {
   const grid = getSampleGrid({
     width: canvasInfo.width,
@@ -184,12 +186,8 @@ export const drawCrossingPoints = ({
   const squares = getSquares(grid);
   evaluateSquares(squares, threshold);
 
-  // Flatten squares matrix
   const flattenedSquares = squares.flat();
 
-  // Set fill and stroke styles and width
-  canvasInfo.ctx.fillStyle = "#00ff00";
-  canvasInfo.ctx.strokeStyle = "#00ff00";
   canvasInfo.ctx.lineWidth = 3;
 
   flattenedSquares.forEach((square) => {
@@ -203,8 +201,7 @@ export const drawCrossingPoints = ({
           0,
           Math.PI * 2
         );
-        // Draw them green
-        canvasInfo.ctx.fillStyle = "#00ff00";
+        canvasInfo.ctx.fillStyle = "#00FF00";
         canvasInfo.ctx.fill();
       });
     }
@@ -219,7 +216,7 @@ export const drawCrossingPoints = ({
           line.crossings[1].point.x,
           line.crossings[1].point.y
         );
-        canvasInfo.ctx.strokeStyle = "#00ff00";
+        canvasInfo.ctx.strokeStyle = lineColor;
         canvasInfo.ctx.stroke();
       });
     }
