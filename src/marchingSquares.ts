@@ -3,20 +3,17 @@ import { Point } from "./noise";
 type SamplePoint = {
   point: Point;
   value: number;
-  inside: boolean;
 };
 
 export const getSampleGrid = ({
   width,
   height,
   gridSize,
-  threshold,
   getNoiseValue,
 }: {
   width: number;
   height: number;
   gridSize: number;
-  threshold: number;
   getNoiseValue: (point: Point) => number;
 }): SamplePoint[][] => {
   const cols = Math.ceil(width / gridSize);
@@ -39,7 +36,6 @@ export const getSampleGrid = ({
       const samplePoint: SamplePoint = {
         point,
         value: noiseValue,
-        inside: noiseValue < threshold,
       };
 
       currentRow.push(samplePoint);
@@ -51,230 +47,212 @@ export const getSampleGrid = ({
   return grid;
 };
 
-type Crossing = {
-  neighbor: Square | null;
-  point: Point;
-};
-
-type Line = {
-  crossings: Crossing[];
-  mid?: Point;
+type Edge = {
+  samplePoints: [SamplePoint, SamplePoint];
+  squares: [Square | null, Square | null];
+  point: Point | null;
+  visited: boolean;
 };
 
 type Square = {
-  samples: {
-    topLeft: SamplePoint;
-    topRight: SamplePoint;
-    bottomLeft: SamplePoint;
-    bottomRight: SamplePoint;
-  };
-  neighbors: {
-    top: Square | null;
-    bottom: Square | null;
-    left: Square | null;
-    right: Square | null;
-  };
-  lines: Line[];
+  top: Edge;
+  bottom: Edge;
+  left: Edge;
+  right: Edge;
 };
 
-export const getSquares = (sampleGrid: SamplePoint[][]): Square[][] => {
-  if (sampleGrid.length < 2 || sampleGrid[0].length < 2) {
-    return []; // Need at least 2x2 grid to make squares
+const calculateEdgePoint = (edge: Edge, threshold: number): Point | null => {
+  const [sample1, sample2] = edge.samplePoints;
+
+  // If both samples have the same inside/outside state, no crossing point
+  if (sample1.value < threshold === sample2.value < threshold) {
+    return null;
   }
 
-  const rows = sampleGrid.length - 1; // -1 because we need 4 points per square
+  // Calculate interpolation factor
+  const t = (threshold - sample1.value) / (sample2.value - sample1.value);
+
+  // Interpolate between the two points
+  return {
+    x: sample1.point.x + t * (sample2.point.x - sample1.point.x),
+    y: sample1.point.y + t * (sample2.point.y - sample1.point.y),
+  };
+};
+
+export const getSquares = (
+  sampleGrid: SamplePoint[][],
+  threshold: number
+): Square[][] => {
+  if (sampleGrid.length < 2 || sampleGrid[0].length < 2) {
+    return [];
+  }
+
+  const rows = sampleGrid.length - 1;
   const cols = sampleGrid[0].length - 1;
 
-  // First pass: Create squares
+  // First create all horizontal edges (top/bottom edges of squares)
+  const horizontalEdges: Edge[][] = [];
+  for (let row = 0; row <= rows; row++) {
+    const edgeRow: Edge[] = [];
+    for (let col = 0; col < cols; col++) {
+      edgeRow.push({
+        samplePoints: [sampleGrid[row][col], sampleGrid[row][col + 1]],
+        squares: [null, null], // [top square, bottom square]
+        point: null,
+        visited: false,
+      });
+    }
+    horizontalEdges.push(edgeRow);
+  }
+
+  // Then create all vertical edges (left/right edges of squares)
+  const verticalEdges: Edge[][] = [];
+  for (let row = 0; row < rows; row++) {
+    const edgeRow: Edge[] = [];
+    for (let col = 0; col <= cols; col++) {
+      edgeRow.push({
+        samplePoints: [sampleGrid[row][col], sampleGrid[row + 1][col]],
+        squares: [null, null], // [left square, right square]
+        point: null,
+        visited: false,
+      });
+    }
+    verticalEdges.push(edgeRow);
+  }
+
+  // Calculate crossing points for horizontal edges
+  for (const row of horizontalEdges) {
+    for (const edge of row) {
+      edge.point = calculateEdgePoint(edge, threshold);
+    }
+  }
+
+  // Calculate crossing points for vertical edges
+  for (const row of verticalEdges) {
+    for (const edge of row) {
+      edge.point = calculateEdgePoint(edge, threshold);
+    }
+  }
+
+  // Create squares using the shared edges
   const squares: Square[][] = [];
   for (let row = 0; row < rows; row++) {
     const squareRow: Square[] = [];
-
     for (let col = 0; col < cols; col++) {
       const square: Square = {
-        samples: {
-          topLeft: sampleGrid[row][col],
-          topRight: sampleGrid[row][col + 1],
-          bottomLeft: sampleGrid[row + 1][col],
-          bottomRight: sampleGrid[row + 1][col + 1],
-        },
-        neighbors: {
-          top: null,
-          bottom: null,
-          left: null,
-          right: null,
-        },
-        lines: [], // Will be populated later
+        top: horizontalEdges[row][col],
+        bottom: horizontalEdges[row + 1][col],
+        left: verticalEdges[row][col],
+        right: verticalEdges[row][col + 1],
       };
+
+      // Update edge references to this square
+      square.top.squares[1] = square; // Square is below this edge
+      square.bottom.squares[0] = square; // Square is above this edge
+      square.left.squares[1] = square; // Square is right of this edge
+      square.right.squares[0] = square; // Square is left of this edge
 
       squareRow.push(square);
     }
-
     squares.push(squareRow);
-  }
-
-  // Second pass: Link neighbors
-  for (let row = 0; row < squares.length; row++) {
-    for (let col = 0; col < squares[row].length; col++) {
-      const square = squares[row][col];
-
-      // Link top neighbor
-      if (row > 0) {
-        square.neighbors.top = squares[row - 1][col];
-      }
-
-      // Link bottom neighbor
-      if (row < squares.length - 1) {
-        square.neighbors.bottom = squares[row + 1][col];
-      }
-
-      // Link left neighbor
-      if (col > 0) {
-        square.neighbors.left = squares[row][col - 1];
-      }
-
-      // Link right neighbor
-      if (col < squares[row].length - 1) {
-        square.neighbors.right = squares[row][col + 1];
-      }
-    }
   }
 
   return squares;
 };
 
-export const getLinesFromCrossings = (crossings: Crossing[]): Line[] => {
-  // If there are exactly 2 crossings, draw a line between them
-  if (crossings.length === 2) {
-    return [{ crossings: crossings }];
-  }
-
-  // If there are 4 crossings, draw a line between the top left and bottom right, and the top right and bottom left
-  if (crossings.length === 4) {
-    return [
-      { crossings: [crossings[0], crossings[3]] },
-      { crossings: [crossings[1], crossings[2]] },
-    ];
-  }
-
-  return [];
+type Path = {
+  points: Point[];
+  isClosed: boolean;
 };
 
-export const getCrossingsForSquare = (
+const findNextEdge = (
   square: Square,
-  threshold: number
-): Crossing[] => {
-  const crossings: Crossing[] = [];
-  const { samples } = square;
-  const { topLeft, topRight, bottomLeft, bottomRight } = samples;
-
-  // Top edge (left to right)
-  const topCrossing = getCrossingFromSamples(
-    square,
-    topLeft,
-    topRight,
-    square.neighbors.top,
-    threshold
+  entryEdge: Edge,
+  startEdge: Edge
+): Edge | null => {
+  // Get all edges with intersection points
+  const edges = [square.top, square.right, square.bottom, square.left].filter(
+    (edge) => edge.point !== null && (!edge.visited || edge === startEdge)
   );
-  if (topCrossing) crossings.push(topCrossing);
 
-  // Right edge (top to bottom)
-  const rightCrossing = getCrossingFromSamples(
-    square,
-    topRight,
-    bottomRight,
-    square.neighbors.right,
-    threshold
-  );
-  if (rightCrossing) crossings.push(rightCrossing);
+  // Filter out the entry edge
+  const nextEdges = edges.filter((edge) => edge !== entryEdge);
 
-  // Bottom edge (right to left)
-  const bottomCrossing = getCrossingFromSamples(
-    square,
-    bottomRight,
-    bottomLeft,
-    square.neighbors.bottom,
-    threshold
-  );
-  if (bottomCrossing) crossings.push(bottomCrossing);
-
-  // Left edge (bottom to top)
-  const leftCrossing = getCrossingFromSamples(
-    square,
-    bottomLeft,
-    topLeft,
-    square.neighbors.left,
-    threshold
-  );
-  if (leftCrossing) crossings.push(leftCrossing);
-
-  return crossings;
+  return nextEdges.length === 1 ? nextEdges[0] : null;
 };
 
-const getCrossingFromSamples = (
-  square: Square,
-  sample1: SamplePoint,
-  sample2: SamplePoint,
-  neighbor: Square | null,
-  threshold: number
-): Crossing | null => {
-  // If both samples have the same inside/outside state, no crossing
-  if (sample1.inside === sample2.inside) {
-    return null;
-  }
-
-  // Check if neighbor exists and has already calculated this crossing
-  if (neighbor?.lines) {
-    for (const line of neighbor.lines) {
-      for (const crossing of line.crossings) {
-        // If this crossing points back to our square, use its point
-        if (crossing.neighbor?.samples === square.samples) {
-          return {
-            point: { ...crossing.point },
-            neighbor,
-          };
+const findStartEdge = (squares: Square[][]): Edge | null => {
+  for (const row of squares) {
+    for (const square of row) {
+      for (const edge of [
+        square.top,
+        square.right,
+        square.bottom,
+        square.left,
+      ]) {
+        if (edge.point && !edge.visited) {
+          return edge;
         }
       }
     }
   }
-
-  // If no existing crossing found, calculate as before...
-  const [outsideSample, insideSample] = sample1.inside
-    ? [sample2, sample1]
-    : [sample1, sample2];
-
-  let t =
-    (threshold - outsideSample.value) /
-    (insideSample.value - outsideSample.value);
-  t = Math.max(0, Math.min(1, t));
-
-  const crossingPoint = {
-    x:
-      outsideSample.point.x +
-      t * (insideSample.point.x - outsideSample.point.x),
-    y:
-      outsideSample.point.y +
-      t * (insideSample.point.y - outsideSample.point.y),
-  };
-
-  return {
-    point: crossingPoint,
-    neighbor,
-  };
+  return null;
 };
 
-export const evaluateSquare = (square: Square, threshold: number): void => {
-  const crossings = getCrossingsForSquare(square, threshold);
-  square.lines = getLinesFromCrossings(crossings);
+const getNextSquare = (edge: Edge, currentSquare: Square): Square | null => {
+  const [square1, square2] = edge.squares;
+  return square1 === currentSquare ? square2 : square1;
 };
 
-export const evaluateSquares = (
-  squares: Square[][],
-  threshold: number
-): void => {
-  for (const squareRow of squares) {
-    for (const square of squareRow) {
-      evaluateSquare(square, threshold);
+export const getPaths = (squares: Square[][]): Path[] => {
+  const paths: Path[] = [];
+
+  while (true) {
+    const startEdge = findStartEdge(squares);
+    if (!startEdge) break;
+
+    const path: Path = {
+      points: [],
+      isClosed: false,
+    };
+
+    let currentEdge = startEdge;
+    let currentSquare = currentEdge.squares[0] || currentEdge.squares[1];
+
+    if (currentEdge.point) {
+      path.points.push(currentEdge.point);
     }
+
+    while (currentEdge && currentSquare) {
+      currentEdge.visited = true;
+
+      const nextEdge = findNextEdge(currentSquare, currentEdge, startEdge);
+
+      if (!nextEdge) {
+        break;
+      }
+
+      if (nextEdge.point) {
+        path.points.push(nextEdge.point);
+      }
+
+      if (nextEdge === startEdge) {
+        path.isClosed = true;
+        nextEdge.visited = true;
+        break;
+      }
+
+      const nextSquare = getNextSquare(nextEdge, currentSquare);
+      if (!nextSquare) {
+        break;
+      }
+
+      currentEdge = nextEdge;
+      currentSquare = nextSquare;
+    }
+
+    paths.push(path);
   }
+
+  return paths;
 };

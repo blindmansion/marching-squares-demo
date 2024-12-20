@@ -11,6 +11,8 @@ interface MarchingSquaresControlsProps {
   setShowLines: (value: boolean) => void;
   lineColor: string;
   setLineColor: (value: string) => void;
+  showPaths: boolean;
+  setShowPaths: (value: boolean) => void;
   style?: React.CSSProperties;
 }
 
@@ -25,6 +27,8 @@ export function MarchingSquaresControls({
   setShowLines,
   lineColor,
   setLineColor,
+  showPaths,
+  setShowPaths,
   style,
 }: MarchingSquaresControlsProps) {
   return (
@@ -87,6 +91,17 @@ export function MarchingSquaresControls({
         >
           <label>Show Lines:</label>
           <Switch checked={showLines} onCheckedChange={setShowLines} />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <label>Show Paths:</label>
+          <Switch checked={showPaths} onCheckedChange={setShowPaths} />
         </div>
 
         {showLines && (

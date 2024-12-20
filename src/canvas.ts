@@ -1,4 +1,4 @@
-import { evaluateSquares, getSampleGrid, getSquares } from "./marchingSquares";
+import { getSampleGrid, getSquares, getPaths } from "./marchingSquares";
 import { Point } from "./noise";
 
 // Helper function to convert hex color to RGB values
@@ -128,7 +128,6 @@ export const drawSamplePoints = ({
     width: canvasInfo.width,
     height: canvasInfo.height,
     gridSize,
-    threshold,
     getNoiseValue: (point) => {
       const value = fractalNoise2D(point);
       return ((value + 1) / 2) * 100; // Normalize to 0-100 range to match threshold
@@ -152,7 +151,8 @@ export const drawSamplePoints = ({
         0,
         Math.PI * 2
       );
-      canvasInfo.ctx.fillStyle = sample.inside ? "#ffffff" : "#000000";
+      canvasInfo.ctx.fillStyle =
+        sample.value > threshold ? "#ffffff" : "#000000";
       canvasInfo.ctx.strokeStyle = "#666666";
       canvasInfo.ctx.fill();
       canvasInfo.ctx.stroke();
@@ -163,70 +163,79 @@ export const drawSamplePoints = ({
   canvasInfo.ctx.restore();
 };
 
-export const drawCrossingPoints = ({
+export const drawMarchingSquaresResult = ({
   canvasInfo,
   gridSize,
   threshold,
-  showCrossingPoints,
-  showLines,
+  showPoints,
+  showPaths,
   fractalNoise2D,
-  lineColor,
 }: {
   canvasInfo: CanvasInfo;
   gridSize: number;
   threshold: number;
-  showCrossingPoints: boolean;
-  showLines: boolean;
+  showPoints: boolean;
+  showPaths: boolean;
   fractalNoise2D: (point: Point) => number;
-  lineColor: string;
 }) => {
   const grid = getSampleGrid({
     width: canvasInfo.width,
     height: canvasInfo.height,
     gridSize,
-    threshold,
     getNoiseValue: (point) => {
       const value = fractalNoise2D(point);
       return ((value + 1) / 2) * 100; // Normalize to 0-100 range to match threshold
     },
   });
 
-  const squares = getSquares(grid);
-  evaluateSquares(squares, threshold);
-
+  const squares = getSquares(grid, threshold);
   const flattenedSquares = squares.flat();
 
-  canvasInfo.ctx.lineWidth = 3;
+  if (showPoints) {
+    // Draw all edge intersection points
+    canvasInfo.ctx.fillStyle = "#00FF00";
 
-  flattenedSquares.forEach((square) => {
-    if (showCrossingPoints) {
-      square.lines.forEach((line) => {
-        canvasInfo.ctx.beginPath();
-        canvasInfo.ctx.arc(
-          line.crossings[0].point.x,
-          line.crossings[0].point.y,
-          4,
-          0,
-          Math.PI * 2
-        );
-        canvasInfo.ctx.fillStyle = "#00FF00";
-        canvasInfo.ctx.fill();
+    flattenedSquares.forEach((square) => {
+      // Check each edge of the square
+      [square.top, square.right, square.bottom, square.left].forEach((edge) => {
+        if (edge.point) {
+          canvasInfo.ctx.beginPath();
+          canvasInfo.ctx.arc(edge.point.x, edge.point.y, 4, 0, Math.PI * 2);
+          canvasInfo.ctx.fill();
+        }
       });
-    }
-    if (showLines) {
-      square.lines.forEach((line) => {
-        canvasInfo.ctx.beginPath();
-        canvasInfo.ctx.moveTo(
-          line.crossings[0].point.x,
-          line.crossings[0].point.y
-        );
-        canvasInfo.ctx.lineTo(
-          line.crossings[1].point.x,
-          line.crossings[1].point.y
-        );
-        canvasInfo.ctx.strokeStyle = lineColor;
-        canvasInfo.ctx.stroke();
-      });
-    }
-  });
+    });
+  }
+
+  if (showPaths) {
+    // Get all paths from our marching squares implementation
+    const paths = getPaths(squares);
+
+    paths.forEach((path) => {
+      // Generate a random color for this path
+      // const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+      const color = path.isClosed ? "#00FF00" : "#FF0000";
+
+      canvasInfo.ctx.beginPath();
+      canvasInfo.ctx.strokeStyle = color;
+      canvasInfo.ctx.lineWidth = 2;
+
+      // Move to the first point
+      if (path.points.length > 0) {
+        canvasInfo.ctx.moveTo(path.points[0].x, path.points[0].y);
+
+        // Draw lines to subsequent points
+        for (let i = 1; i < path.points.length; i++) {
+          canvasInfo.ctx.lineTo(path.points[i].x, path.points[i].y);
+        }
+
+        // If the path is closed, connect back to the start
+        if (path.isClosed) {
+          canvasInfo.ctx.lineTo(path.points[0].x, path.points[0].y);
+        }
+      }
+
+      canvasInfo.ctx.stroke();
+    });
+  }
 };

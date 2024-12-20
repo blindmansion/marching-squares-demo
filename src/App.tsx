@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Container, Box } from "@radix-ui/themes";
 import {
   CanvasInfo,
-  drawCrossingPoints,
+  drawMarchingSquaresResult,
   drawNoiseGrayscale,
   drawNoiseThreshold,
   drawSamplePoints,
@@ -29,6 +29,7 @@ function App() {
   const [showSamplePoints, setShowSamplePoints] = useState(false);
   const [showCrossingPoints, setShowCrossingPoints] = useState(false);
   const [showLines, setShowLines] = useState(false);
+  const [showPaths, setShowPaths] = useState(false);
   const [noiseMatrix, setNoiseMatrix] = useState<number[][]>([]);
   const [lineColor, setLineColor] = useState("#00FF00");
 
@@ -124,14 +125,17 @@ function App() {
         fractalNoise2D: getCachedNoise,
       });
     }
-    drawCrossingPoints({
+    drawMarchingSquaresResult({
       canvasInfo,
       gridSize,
       threshold,
       fractalNoise2D: getCachedNoise,
-      showCrossingPoints,
-      showLines,
-      lineColor,
+      showPoints: showCrossingPoints,
+      showPaths,
+      // showCrossingPoints,
+      // showLines,
+      // showPaths,
+      // lineColor,
     });
   }, [
     noiseMatrix,
@@ -145,6 +149,7 @@ function App() {
     showSamplePoints,
     showCrossingPoints,
     showLines,
+    showPaths,
     getCachedNoise,
     lineColor,
   ]);
@@ -232,6 +237,8 @@ function App() {
             setShowCrossingPoints={setShowCrossingPoints}
             showLines={showLines}
             setShowLines={setShowLines}
+            showPaths={showPaths}
+            setShowPaths={setShowPaths}
             lineColor={lineColor}
             setLineColor={setLineColor}
             style={{ flex: 1 }}
