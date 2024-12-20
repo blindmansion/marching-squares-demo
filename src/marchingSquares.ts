@@ -59,6 +59,8 @@ type Square = {
   bottom: Edge;
   left: Edge;
   right: Edge;
+  isSaddle: boolean;
+  saddleConnection: boolean;
 };
 
 const calculateEdgePoint = (edge: Edge, threshold: number): Point | null => {
@@ -77,6 +79,32 @@ const calculateEdgePoint = (edge: Edge, threshold: number): Point | null => {
     x: sample1.point.x + t * (sample2.point.x - sample1.point.x),
     y: sample1.point.y + t * (sample2.point.y - sample1.point.y),
   };
+};
+
+// Add this type to help identify square configurations
+type SquareConfig = {
+  topLeft: number;
+  topRight: number;
+  bottomLeft: number;
+  bottomRight: number;
+  threshold: number;
+};
+
+// New function to detect and handle saddle points
+const isSaddlePoint = (config: SquareConfig): boolean => {
+  const { topLeft, topRight, bottomLeft, bottomRight, threshold } = config;
+
+  // Check if we have diagonal matching pairs
+  const topLeftInside = topLeft >= threshold;
+  const topRightInside = topRight >= threshold;
+  const bottomLeftInside = bottomLeft >= threshold;
+  const bottomRightInside = bottomRight >= threshold;
+
+  return (
+    topLeftInside === bottomRightInside &&
+    topRightInside === bottomLeftInside &&
+    topLeftInside !== topRightInside
+  );
 };
 
 export const getSquares = (
@@ -139,11 +167,24 @@ export const getSquares = (
   for (let row = 0; row < rows; row++) {
     const squareRow: Square[] = [];
     for (let col = 0; col < cols; col++) {
+      const config: SquareConfig = {
+        topLeft: sampleGrid[row][col].value,
+        topRight: sampleGrid[row][col + 1].value,
+        bottomLeft: sampleGrid[row + 1][col].value,
+        bottomRight: sampleGrid[row + 1][col + 1].value,
+        threshold,
+      };
+
       const square: Square = {
         top: horizontalEdges[row][col],
         bottom: horizontalEdges[row + 1][col],
         left: verticalEdges[row][col],
         right: verticalEdges[row][col + 1],
+        isSaddle: isSaddlePoint(config),
+        // We'll use this to consistently handle saddle points
+        // true means connect top-left to bottom-right
+        // false means connect top-right to bottom-left
+        saddleConnection: config.topLeft >= threshold,
       };
 
       // Update edge references to this square
@@ -165,6 +206,7 @@ type Path = {
   isClosed: boolean;
 };
 
+// Modify findNextEdge to respect saddle point connections
 const findNextEdge = (
   square: Square,
   entryEdge: Edge,
@@ -175,9 +217,63 @@ const findNextEdge = (
     (edge) => edge.point !== null && (!edge.visited || edge === startEdge)
   );
 
-  // Filter out the entry edge
-  const nextEdges = edges.filter((edge) => edge !== entryEdge);
+  if (square.isSaddle) {
+    // For saddle points, we need to enforce the correct connection
+    const edgeIndex = {
+      top: 0,
+      right: 1,
+      bottom: 2,
+      left: 3,
+    };
 
+    // Get the index of our entry edge
+    let entryIndex = -1;
+    for (const [key, edge] of Object.entries(square)) {
+      if (edge === entryEdge && key in edgeIndex) {
+        entryIndex = edgeIndex[key as keyof typeof edgeIndex];
+        break;
+      }
+    }
+
+    if (entryIndex !== -1) {
+      // Based on the saddle configuration and entry point,
+      // determine the correct exit edge
+      const nextEdges = edges.filter((edge) => {
+        if (edge === entryEdge) return false;
+
+        let edgePos = -1;
+        for (const [key, e] of Object.entries(square)) {
+          if (e === edge && key in edgeIndex) {
+            edgePos = edgeIndex[key as keyof typeof edgeIndex];
+            break;
+          }
+        }
+
+        if (square.saddleConnection) {
+          // Connect top-left to bottom-right
+          return (
+            (entryIndex === 0 && edgePos === 2) || // top to bottom
+            (entryIndex === 2 && edgePos === 0) || // bottom to top
+            (entryIndex === 1 && edgePos === 3) || // right to left
+            (entryIndex === 3 && edgePos === 1) // left to right
+          );
+        } else {
+          // Connect top-right to bottom-left
+          return (
+            (entryIndex === 0 && edgePos === 3) || // top to left
+            (entryIndex === 3 && edgePos === 0) || // left to top
+            (entryIndex === 1 && edgePos === 2) || // right to bottom
+            (entryIndex === 2 && edgePos === 1) // bottom to right
+          );
+        }
+      });
+
+      return nextEdges[0] || null;
+    }
+  }
+
+  // Non-saddle point case remains the same
+  const nextEdges = edges.filter((edge) => edge !== entryEdge);
   return nextEdges.length === 1 ? nextEdges[0] : null;
 };
 
