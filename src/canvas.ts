@@ -113,62 +113,13 @@ export const drawNoiseGrayscale = ({
   canvasInfo.ctx.putImageData(imageData, 0, 0);
 };
 
-export const drawSamplePoints = ({
-  canvasInfo,
-  gridSize,
-  threshold,
-  fractalNoise2D,
-}: {
-  canvasInfo: CanvasInfo;
-  gridSize: number;
-  threshold: number;
-  fractalNoise2D: (point: Point) => number;
-}) => {
-  const grid = getSampleGrid({
-    width: canvasInfo.width,
-    height: canvasInfo.height,
-    gridSize,
-    getNoiseValue: (point) => {
-      const value = fractalNoise2D(point);
-      return ((value + 1) / 2) * 100; // Normalize to 0-100 range to match threshold
-    },
-  });
-
-  // Save the current context state
-  canvasInfo.ctx.save();
-
-  // Draw points
-  const pointRadius = 4;
-  canvasInfo.ctx.lineWidth = 2; // Changed from default to 2
-
-  grid.forEach((row) => {
-    row.forEach((sample) => {
-      canvasInfo.ctx.beginPath();
-      canvasInfo.ctx.arc(
-        sample.point.x,
-        sample.point.y,
-        pointRadius,
-        0,
-        Math.PI * 2
-      );
-      canvasInfo.ctx.fillStyle =
-        sample.value > threshold ? "#ffffff" : "#000000";
-      canvasInfo.ctx.strokeStyle = "#666666";
-      canvasInfo.ctx.fill();
-      canvasInfo.ctx.stroke();
-    });
-  });
-
-  // Restore the context state
-  canvasInfo.ctx.restore();
-};
-
 export const drawMarchingSquaresResult = ({
   canvasInfo,
   gridSize,
   threshold,
   showPoints,
   showPaths,
+  showGrid,
   fractalNoise2D,
 }: {
   canvasInfo: CanvasInfo;
@@ -176,6 +127,7 @@ export const drawMarchingSquaresResult = ({
   threshold: number;
   showPoints: boolean;
   showPaths: boolean;
+  showGrid: boolean;
   fractalNoise2D: (point: Point) => number;
 }) => {
   const grid = getSampleGrid({
@@ -184,9 +136,36 @@ export const drawMarchingSquaresResult = ({
     gridSize,
     getNoiseValue: (point) => {
       const value = fractalNoise2D(point);
-      return ((value + 1) / 2) * 100; // Normalize to 0-100 range to match threshold
+      return ((value + 1) / 2) * 100;
     },
   });
+
+  // Save context state at the beginning
+  canvasInfo.ctx.save();
+
+  if (showGrid) {
+    // Draw grid points
+    const pointRadius = 4;
+    canvasInfo.ctx.lineWidth = 2;
+
+    grid.forEach((row) => {
+      row.forEach((sample) => {
+        canvasInfo.ctx.beginPath();
+        canvasInfo.ctx.arc(
+          sample.point.x,
+          sample.point.y,
+          pointRadius,
+          0,
+          Math.PI * 2
+        );
+        canvasInfo.ctx.fillStyle =
+          sample.value > threshold ? "#ffffff" : "#000000";
+        canvasInfo.ctx.strokeStyle = "#666666";
+        canvasInfo.ctx.fill();
+        canvasInfo.ctx.stroke();
+      });
+    });
+  }
 
   const squares = getSquares(grid, threshold);
   const flattenedSquares = squares.flat();
@@ -238,4 +217,7 @@ export const drawMarchingSquaresResult = ({
       canvasInfo.ctx.stroke();
     });
   }
+
+  // Restore context state at the end
+  canvasInfo.ctx.restore();
 };

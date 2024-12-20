@@ -5,7 +5,6 @@ import {
   drawMarchingSquaresResult,
   drawNoiseGrayscale,
   drawNoiseThreshold,
-  drawSamplePoints,
 } from "./canvas";
 import { FractalControls } from "./FractalControls";
 import { ThresholdControls } from "./ThresholdControls";
@@ -117,14 +116,6 @@ function App() {
         fractalNoise2D: getCachedNoise,
       });
     }
-    if (showSamplePoints) {
-      drawSamplePoints({
-        canvasInfo,
-        gridSize,
-        threshold,
-        fractalNoise2D: getCachedNoise,
-      });
-    }
     drawMarchingSquaresResult({
       canvasInfo,
       gridSize,
@@ -132,6 +123,7 @@ function App() {
       fractalNoise2D: getCachedNoise,
       showPoints: showCrossingPoints,
       showPaths,
+      showGrid: showSamplePoints,
       // showCrossingPoints,
       // showLines,
       // showPaths,
