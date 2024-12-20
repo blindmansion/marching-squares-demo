@@ -124,10 +124,6 @@ function App() {
       showPoints: showCrossingPoints,
       showPaths,
       showGrid: showSamplePoints,
-      // showCrossingPoints,
-      // showLines,
-      // showPaths,
-      // lineColor,
     });
   }, [
     noiseMatrix,

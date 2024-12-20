@@ -23,10 +23,6 @@ export function MarchingSquaresControls({
   setShowSamplePoints,
   showCrossingPoints,
   setShowCrossingPoints,
-  showLines,
-  setShowLines,
-  lineColor,
-  setLineColor,
   showPaths,
   setShowPaths,
   style,
@@ -89,34 +85,9 @@ export function MarchingSquaresControls({
             justifyContent: "space-between",
           }}
         >
-          <label>Show Lines:</label>
-          <Switch checked={showLines} onCheckedChange={setShowLines} />
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
           <label>Show Paths:</label>
           <Switch checked={showPaths} onCheckedChange={setShowPaths} />
         </div>
-
-        {showLines && (
-          <div>
-            <label>Line Color:</label>
-            <div style={{ marginTop: "8px" }}>
-              <input
-                type="color"
-                value={lineColor}
-                onChange={(e) => setLineColor(e.target.value)}
-                style={{ width: "100%" }}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </Box>
   );
