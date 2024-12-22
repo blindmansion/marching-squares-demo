@@ -7,10 +7,6 @@ interface MarchingSquaresControlsProps {
   setShowSamplePoints: (value: boolean) => void;
   showCrossingPoints: boolean;
   setShowCrossingPoints: (value: boolean) => void;
-  showLines: boolean;
-  setShowLines: (value: boolean) => void;
-  lineColor: string;
-  setLineColor: (value: string) => void;
   showPaths: boolean;
   setShowPaths: (value: boolean) => void;
   style?: React.CSSProperties;

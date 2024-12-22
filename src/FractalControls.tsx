@@ -73,9 +73,9 @@ export function FractalControls({
             defaultValue={[baseScale]}
             value={[baseScale]}
             onValueChange={(v) => setBaseScale(v[0])}
-            min={0.001}
-            max={0.01}
-            step={0.0001}
+            min={0.0001}
+            max={1}
+            step={0.001}
           />
         </div>
       </div>

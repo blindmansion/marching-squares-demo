@@ -27,10 +27,11 @@ function App() {
   const [showThreshold, setShowThreshold] = useState(false);
   const [showSamplePoints, setShowSamplePoints] = useState(false);
   const [showCrossingPoints, setShowCrossingPoints] = useState(false);
-  const [showLines, setShowLines] = useState(false);
   const [showPaths, setShowPaths] = useState(false);
   const [noiseMatrix, setNoiseMatrix] = useState<number[][]>([]);
-  const [lineColor, setLineColor] = useState("#00FF00");
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -68,24 +69,29 @@ function App() {
       },
     });
 
-    // Calculate noise values for each pixel
+    // Calculate noise values for each pixel, accounting for offset
     const newNoiseMatrix: number[][] = [];
     for (let y = 0; y < dimensions.height; y++) {
       const row: number[] = [];
       for (let x = 0; x < dimensions.width; x++) {
-        row.push(fractalNoise2D({ x, y }));
+        // Include offset in the noise input coordinates
+        const noisePoint = {
+          x: (x + offset.x) * baseScale,
+          y: (y + offset.y) * baseScale,
+        };
+        row.push(fractalNoise2D(noisePoint));
       }
       newNoiseMatrix.push(row);
     }
     setNoiseMatrix(newNoiseMatrix);
-  }, [dimensions, octaves, lacunarity, persistence, baseScale]);
+  }, [dimensions, octaves, lacunarity, persistence, baseScale, offset]);
 
-  // Move getCachedNoise into useCallback
+  // Simplify getCachedNoise since we don't need to wrap coordinates anymore
   const getCachedNoise = useCallback(
     (point: Point) => {
-      const xi = Math.floor(point.x);
-      const yi = Math.floor(point.y);
-      return noiseMatrix[yi]?.[xi] ?? 0;
+      const x = Math.floor(point.x);
+      const y = Math.floor(point.y);
+      return noiseMatrix[y]?.[x] ?? 0;
     },
     [noiseMatrix]
   );
@@ -136,11 +142,45 @@ function App() {
     showThreshold,
     showSamplePoints,
     showCrossingPoints,
-    showLines,
     showPaths,
     getCachedNoise,
-    lineColor,
   ]);
+
+  // Add mouse event handlers
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      setIsDragging(true);
+      setLastMousePos({
+        x: e.clientX,
+        y: e.clientY,
+      });
+    },
+    []
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - lastMousePos.x;
+      const deltaY = e.clientY - lastMousePos.y;
+
+      setOffset((prev) => ({
+        x: prev.x - deltaX,
+        y: prev.y - deltaY,
+      }));
+
+      setLastMousePos({
+        x: e.clientX,
+        y: e.clientY,
+      });
+    },
+    [isDragging, lastMousePos]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   return (
     <Container
@@ -173,6 +213,10 @@ function App() {
         >
           <canvas
             ref={canvasRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
             style={{
               display: "block",
               width: "100%",
@@ -181,6 +225,7 @@ function App() {
               padding: 0,
               boxSizing: "border-box",
               objectFit: "contain",
+              cursor: isDragging ? "grabbing" : "grab",
             }}
           />
         </Box>
@@ -223,12 +268,8 @@ function App() {
             setShowSamplePoints={setShowSamplePoints}
             showCrossingPoints={showCrossingPoints}
             setShowCrossingPoints={setShowCrossingPoints}
-            showLines={showLines}
-            setShowLines={setShowLines}
             showPaths={showPaths}
             setShowPaths={setShowPaths}
-            lineColor={lineColor}
-            setLineColor={setLineColor}
             style={{ flex: 1 }}
           />
         </div>

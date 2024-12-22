@@ -107,6 +107,16 @@ const isSaddlePoint = (config: SquareConfig): boolean => {
   );
 };
 
+// Add this helper function
+const getSaddleConnectionType = (config: SquareConfig): boolean => {
+  const { topLeft, threshold } = config;
+
+  // Always connect high-to-high values
+  // If topLeft is high, connect topLeft to bottomRight
+  // If topRight is high, connect topRight to bottomLeft
+  return topLeft >= threshold;
+};
+
 export const getSquares = (
   sampleGrid: SamplePoint[][],
   threshold: number
@@ -181,10 +191,8 @@ export const getSquares = (
         left: verticalEdges[row][col],
         right: verticalEdges[row][col + 1],
         isSaddle: isSaddlePoint(config),
-        // We'll use this to consistently handle saddle points
-        // true means connect top-left to bottom-right
-        // false means connect top-right to bottom-left
-        saddleConnection: config.topLeft >= threshold,
+        // Replace the old saddleConnection logic with the new one
+        saddleConnection: getSaddleConnectionType(config),
       };
 
       // Update edge references to this square
@@ -212,64 +220,53 @@ const findNextEdge = (
   entryEdge: Edge,
   startEdge: Edge
 ): Edge | null => {
-  // Get all edges with intersection points
   const edges = [square.top, square.right, square.bottom, square.left].filter(
     (edge) => edge.point !== null && (!edge.visited || edge === startEdge)
   );
 
   if (square.isSaddle) {
-    // For saddle points, we need to enforce the correct connection
-    const edgeIndex = {
-      top: 0,
-      right: 1,
-      bottom: 2,
-      left: 3,
-    };
+    // Get the position of each edge
+    const edgePositions = new Map();
+    if (square.top === entryEdge) edgePositions.set(entryEdge, "top");
+    if (square.right === entryEdge) edgePositions.set(entryEdge, "right");
+    if (square.bottom === entryEdge) edgePositions.set(entryEdge, "bottom");
+    if (square.left === entryEdge) edgePositions.set(entryEdge, "left");
 
-    // Get the index of our entry edge
-    let entryIndex = -1;
-    for (const [key, edge] of Object.entries(square)) {
-      if (edge === entryEdge && key in edgeIndex) {
-        entryIndex = edgeIndex[key as keyof typeof edgeIndex];
-        break;
-      }
-    }
-
-    if (entryIndex !== -1) {
-      // Based on the saddle configuration and entry point,
-      // determine the correct exit edge
-      const nextEdges = edges.filter((edge) => {
+    // Filter edges based on valid connections
+    return (
+      edges.find((edge) => {
         if (edge === entryEdge) return false;
 
-        let edgePos = -1;
-        for (const [key, e] of Object.entries(square)) {
-          if (e === edge && key in edgeIndex) {
-            edgePos = edgeIndex[key as keyof typeof edgeIndex];
-            break;
-          }
-        }
+        const pos =
+          square.top === edge
+            ? "top"
+            : square.right === edge
+            ? "right"
+            : square.bottom === edge
+            ? "bottom"
+            : "left";
+
+        const entryPos = edgePositions.get(entryEdge);
 
         if (square.saddleConnection) {
-          // Connect top-left to bottom-right
+          // Connect topLeft to bottomRight
           return (
-            (entryIndex === 0 && edgePos === 2) || // top to bottom
-            (entryIndex === 2 && edgePos === 0) || // bottom to top
-            (entryIndex === 1 && edgePos === 3) || // right to left
-            (entryIndex === 3 && edgePos === 1) // left to right
+            (entryPos === "top" && pos === "right") ||
+            (entryPos === "right" && pos === "bottom") ||
+            (entryPos === "bottom" && pos === "left") ||
+            (entryPos === "left" && pos === "top")
           );
         } else {
-          // Connect top-right to bottom-left
+          // Connect topRight to bottomLeft
           return (
-            (entryIndex === 0 && edgePos === 3) || // top to left
-            (entryIndex === 3 && edgePos === 0) || // left to top
-            (entryIndex === 1 && edgePos === 2) || // right to bottom
-            (entryIndex === 2 && edgePos === 1) // bottom to right
+            (entryPos === "top" && pos === "left") ||
+            (entryPos === "left" && pos === "bottom") ||
+            (entryPos === "bottom" && pos === "right") ||
+            (entryPos === "right" && pos === "top")
           );
         }
-      });
-
-      return nextEdges[0] || null;
-    }
+      }) || null
+    );
   }
 
   // Non-saddle point case remains the same
